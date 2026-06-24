@@ -88,28 +88,42 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
     if (!allSelected || uploading) return;
     setUploading(true);
     setError("");
-
+  
     try {
-      // 1. Upload PDF to Firebase Storage
+      console.log("Step 1: Starting upload...");
+      console.log("File:", submitter.file.name, submitter.file.size, submitter.file.type);
+      console.log("Storage bucket:", storage.app.options.storageBucket);
+  
       const storageRef = ref(storage, `pdfs/${Date.now()}_${submitter.file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, submitter.file);
-
+  
       const pdfUrl = await new Promise((resolve, reject) => {
         uploadTask.on(
           "state_changed",
-          snap => setUploadPct(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
-          reject,
-          async () => resolve(await getDownloadURL(uploadTask.snapshot.ref))
+          snap => {
+            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+            console.log("Upload progress:", pct + "%");
+            setUploadPct(pct);
+          },
+          err => {
+            console.error("Upload FAILED:", err.code, err.message);
+            reject(err);
+          },
+          async () => {
+            console.log("Step 2: Upload complete, getting URL...");
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log("Step 3: Got URL:", url);
+            resolve(url);
+          }
         );
       });
-
-      // 2. Map selections to full approver objects
+  
+      console.log("Step 4: Saving to Firestore...");
       const chosenApprovers = selections.map(sel => {
         const found = APPROVERS.find(a => `${a.name} — ${a.title}` === sel);
         return { name: found.name, title: found.title, email: found.email };
       });
-
-      // 3. Save approval doc to Firestore — Cloud Function watches this
+  
       const docRef = await addDoc(collection(db, "approvals"), {
         submitter: {
           firstName: submitter.firstName,
@@ -119,17 +133,19 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
         },
         approvers: chosenApprovers,
         approvedCount: 0,
-        pdfUrl,                        // Firebase Storage URL — used by iframe
+        pdfUrl,
         fileName: submitter.file.name,
         fileSize: submitter.file.size,
         status: "pending",
         createdAt: serverTimestamp(),
       });
-
+  
+      console.log("Step 5: Firestore doc created:", docRef.id);
       onSubmitted(docRef.id);
+  
     } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please try again.");
+      console.error("FULL ERROR:", err.code, err.message, err);
+      setError(`Error: ${err.message}`);
       setUploading(false);
     }
   };
