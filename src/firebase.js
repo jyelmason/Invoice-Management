@@ -4,6 +4,13 @@ import { getStorage } from 'firebase/storage';
 
 // ─── Replace these values with your Firebase project's config ───────────────
 // Find them in: Firebase Console → Project Settings → Your apps → SDK setup
+
+console.log("ENV CHECK:", {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+});
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
