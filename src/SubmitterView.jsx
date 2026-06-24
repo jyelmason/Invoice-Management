@@ -5,15 +5,14 @@ import { db, storage } from "./firebase";
 import { APPROVERS } from "./approvers";
 import { GLOBAL_STYLES, Connector, ApproverCard } from "./components";
 
-// ─── Step 1: Submitter info + file upload form ───────────────────────────────
+// ─── Step 1: Submitter info + file upload ────────────────────────────────────
 function UserInfoStep({ onNext }) {
-  const [form, setForm]     = useState({ firstName: "", lastName: "", email: "", company: "" });
-  const [file, setFile]     = useState(null);
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", company: "" });
+  const [file, setFile] = useState(null);
   const [dragOver, setDrag] = useState(false);
-  const fileRef             = useRef();
+  const fileRef = useRef();
 
-  const valid =
-    form.firstName.trim() && form.lastName.trim() &&
+  const valid = form.firstName.trim() && form.lastName.trim() &&
     form.email.includes("@") && form.company.trim() && file;
 
   const handleFile = f => { if (f?.type === "application/pdf") setFile(f); };
@@ -28,7 +27,7 @@ function UserInfoStep({ onNext }) {
         </div>
         <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-lg)", padding: "1.5rem", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[["First name","Alex","firstName"],["Last name","Rivera","lastName"]].map(([label,ph,key]) => (
+            {[["First name", "Alex", "firstName"], ["Last name", "Rivera", "lastName"]].map(([label, ph, key]) => (
               <div key={key}>
                 <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>{label}</label>
                 <input placeholder={ph} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ width: "100%", boxSizing: "border-box" }} />
@@ -77,13 +76,13 @@ function UserInfoStep({ onNext }) {
   );
 }
 
-// ─── Step 2: Pick approvers + submit ────────────────────────────────────────
+// ─── Step 2: Pick approvers + upload to Firebase ─────────────────────────────
 function ApproverSelectStep({ submitter, onSubmitted }) {
   const [selections, setSelections] = useState(["", "", ""]);
-  const [uploading, setUploading]   = useState(false);
-  const [uploadPct, setUploadPct]   = useState(0);
-  const [error, setError]           = useState("");
-  const allSelected                 = selections.every(Boolean);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [error, setError] = useState("");
+  const allSelected = selections.every(Boolean);
 
   const handleSubmit = async () => {
     if (!allSelected || uploading) return;
@@ -91,8 +90,9 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
     setError("");
 
     try {
-      const storageRef  = ref(storage, `pdfs/${Date.now()}_${submitter.file.name}`);
-      const uploadTask  = uploadBytesResumable(storageRef, submitter.file);
+      // 1. Upload PDF to Firebase Storage
+      const storageRef = ref(storage, `pdfs/${Date.now()}_${submitter.file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, submitter.file);
 
       const pdfUrl = await new Promise((resolve, reject) => {
         uploadTask.on(
@@ -103,25 +103,27 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
         );
       });
 
+      // 2. Map selections to full approver objects
       const chosenApprovers = selections.map(sel => {
         const found = APPROVERS.find(a => `${a.name} — ${a.title}` === sel);
         return { name: found.name, title: found.title, email: found.email };
       });
 
+      // 3. Save approval doc to Firestore — Cloud Function watches this
       const docRef = await addDoc(collection(db, "approvals"), {
         submitter: {
           firstName: submitter.firstName,
-          lastName:  submitter.lastName,
-          email:     submitter.email,
-          company:   submitter.company,
+          lastName: submitter.lastName,
+          email: submitter.email,
+          company: submitter.company,
         },
-        approvers:     chosenApprovers,
+        approvers: chosenApprovers,
         approvedCount: 0,
-        pdfUrl,
-        fileName:      submitter.file.name,
-        fileSize:      submitter.file.size,
-        status:        "pending",
-        createdAt:     serverTimestamp(),
+        pdfUrl,                        // Firebase Storage URL — used by iframe
+        fileName: submitter.file.name,
+        fileSize: submitter.file.size,
+        status: "pending",
+        createdAt: serverTimestamp(),
       });
 
       onSubmitted(docRef.id);
@@ -140,8 +142,8 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
           <h1 style={{ fontSize: 26, fontWeight: 500, margin: "0 0 6px" }}>Choose approvers</h1>
           <p style={{ fontSize: 14, color: "var(--color-text-secondary)", margin: 0 }}>Select three people to review this document. Each will be emailed in sequence.</p>
         </div>
-
         <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-lg)", padding: "1.5rem", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Submitter summary card */}
           <div style={{ padding: "10px 14px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-md)", display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#E6F1FB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, color: "#185FA5", flexShrink: 0 }}>
               {submitter.firstName[0]}{submitter.lastName[0]}
@@ -163,10 +165,7 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
                 >
                   <option value="">Select approver…</option>
                   {APPROVERS
-                    .filter(a => {
-                      const val = `${a.name} — ${a.title}`;
-                      return !selections.includes(val) || selections[i] === val;
-                    })
+                    .filter(a => !selections.includes(`${a.name} — ${a.title}`) || selections[i] === `${a.name} — ${a.title}`)
                     .map(a => {
                       const val = `${a.name} — ${a.title}`;
                       return <option key={val} value={val}>{a.name} — {a.title}</option>;
@@ -174,7 +173,7 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
                 </select>
               </div>
               {selections[i] && (
-                <div style={{ marginTop: 5, padding: "7px 12px", background: "#EAF3DE", borderRadius: "var(--border-radius-md)", display: "flex", alignItems: "center", gap: 8, animation: "fadeIn 0.2s ease" }}>
+                <div style={{ marginTop: 5, padding: "7px 12px", background: "#EAF3DE", borderRadius: "var(--border-radius-md)", display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#C0DD97", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#3B6D11", flexShrink: 0 }}>
                     {selections[i].split(" ").map(w => w[0]).slice(0, 2).join("")}
                   </div>
@@ -196,9 +195,7 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
             disabled={!allSelected || uploading}
             style={{ marginTop: 4, padding: "10px 0", fontWeight: 500, fontSize: 14, cursor: allSelected && !uploading ? "pointer" : "not-allowed", opacity: allSelected && !uploading ? 1 : 0.4 }}
           >
-            {uploading
-              ? uploadPct < 100 ? `Uploading… ${uploadPct}%` : "Saving…"
-              : "Submit for approval →"}
+            {uploading ? (uploadPct < 100 ? `Uploading… ${uploadPct}%` : "Saving…") : "Submit for approval →"}
           </button>
         </div>
       </div>
@@ -206,14 +203,12 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
   );
 }
 
-// ─── Step 3: Live chain progress view ───────────────────────────────────────
+// ─── Step 3: Live chain — reads pdfUrl from Firestore (Firebase Storage URL) ─
 function LiveChainView({ docId, submitter, onDone }) {
   const [approvedCount, setApprovedCount] = useState(0);
-  const [approvers, setApprovers]         = useState([]);
-  const [docStatus, setDocStatus]         = useState("pending");
-  const pdfUrl                            = useRef(null);
-
-  if (!pdfUrl.current && submitter?.file) pdfUrl.current = URL.createObjectURL(submitter.file);
+  const [approvers, setApprovers] = useState([]);
+  const [docStatus, setDocStatus] = useState("pending");
+  const [pdfUrl, setPdfUrl] = useState(null); // set from Firestore, works on Vercel
 
   useEffect(() => {
     if (!docId) return;
@@ -223,6 +218,7 @@ function LiveChainView({ docId, submitter, onDone }) {
       setApprovedCount(data.approvedCount ?? 0);
       setApprovers(data.approvers ?? []);
       setDocStatus(data.status ?? "pending");
+      if (data.pdfUrl) setPdfUrl(data.pdfUrl); // permanent Firebase Storage URL
     });
     return () => unsub();
   }, [docId]);
@@ -237,6 +233,7 @@ function LiveChainView({ docId, submitter, onDone }) {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--color-background-tertiary)" }}>
+      {/* Left panel — approval chain */}
       <div style={{ width: 340, minWidth: 300, flexShrink: 0, borderRight: "0.5px solid var(--color-border-tertiary)", display: "flex", flexDirection: "column", background: "var(--color-background-primary)", overflow: "hidden" }}>
         <div style={{ padding: "18px 18px 14px", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
           <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", color: "var(--color-text-secondary)", textTransform: "uppercase", margin: "0 0 3px" }}>Approval chain</p>
@@ -244,12 +241,7 @@ function LiveChainView({ docId, submitter, onDone }) {
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "18px 14px 8px" }}>
-          <ApproverCard
-            name={`${submitter.firstName} ${submitter.lastName}`}
-            role={submitter.email}
-            status="approved"
-            isSubmitter
-          />
+          <ApproverCard name={`${submitter.firstName} ${submitter.lastName}`} role={submitter.email} status="approved" isSubmitter />
 
           {approvers.map((ap, i) => (
             <div key={i}>
@@ -269,7 +261,7 @@ function LiveChainView({ docId, submitter, onDone }) {
 
         <div style={{ padding: "14px", borderTop: "0.5px solid var(--color-border-tertiary)" }}>
           {allDone ? (
-            <button onClick={onDone} style={{ width: "100%", padding: "9px", fontWeight: 500, fontSize: 13, background: "#EAF3DE", color: "#27500A", border: "1px solid #97C459", borderRadius: "var(--border-radius-md)", cursor: "pointer", animation: "fadeIn 0.3s ease" }}>
+            <button onClick={onDone} style={{ width: "100%", padding: "9px", fontWeight: 500, fontSize: 13, background: "#EAF3DE", color: "#27500A", border: "1px solid #97C459", borderRadius: "var(--border-radius-md)", cursor: "pointer" }}>
               <i className="ti ti-circle-check" style={{ marginRight: 6, fontSize: 14, verticalAlign: "-2px" }} aria-hidden="true" />
               Close document
             </button>
@@ -284,21 +276,25 @@ function LiveChainView({ docId, submitter, onDone }) {
         </div>
       </div>
 
+      {/* Right panel — PDF from Firebase Storage URL */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "14px 20px", borderBottom: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", display: "flex", alignItems: "center", gap: 12 }}>
           <i className="ti ti-file-type-pdf" style={{ fontSize: 18, color: "#E24B4A" }} aria-hidden="true" />
           <span style={{ fontSize: 13, fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{submitter.file?.name}</span>
           <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{submitter.file ? (submitter.file.size / 1024).toFixed(0) + " KB" : ""}</span>
           <div style={{ display: "flex", gap: 4 }}>
-            {[0,1,2].map(i => (
+            {[0, 1, 2].map(i => (
               <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: i < approvedCount ? "#639922" : i === approvedCount && !allDone ? "#97C459" : "var(--color-border-secondary)", transition: "background 0.4s ease", animation: i === approvedCount && !allDone ? "pulseDot 1s ease-in-out infinite" : "none" }} />
             ))}
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          {pdfUrl.current
-            ? <iframe src={pdfUrl.current} title="PDF preview" style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
-            : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--color-text-secondary)", fontSize: 13 }}>PDF preview unavailable after page reload</div>
+          {pdfUrl
+            ? <iframe src={pdfUrl} title="PDF preview" style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
+            : <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--color-text-secondary)", fontSize: 13, flexDirection: "column", gap: 8 }}>
+                <i className="ti ti-loader" style={{ fontSize: 28, opacity: 0.4 }} aria-hidden="true" />
+                Loading document…
+              </div>
           }
         </div>
       </div>
@@ -306,7 +302,7 @@ function LiveChainView({ docId, submitter, onDone }) {
   );
 }
 
-// ─── Success screen ──────────────────────────────────────────────────────────
+// ─── Success screen ───────────────────────────────────────────────────────────
 function SuccessScreen({ submitter, onClose }) {
   const name = `${submitter.firstName} ${submitter.lastName}`;
   return (
@@ -333,37 +329,19 @@ function SuccessScreen({ submitter, onClose }) {
   );
 }
 
-// ─── Exported root component ─────────────────────────────────────────────────
+// ─── Root export ──────────────────────────────────────────────────────────────
 export default function SubmitterView() {
-  const [step, setStep]           = useState("info");
+  const [step, setStep] = useState("info");
   const [submitter, setSubmitter] = useState(null);
-  const [docId, setDocId]         = useState(null);
+  const [docId, setDocId] = useState(null);
 
   return (
     <>
       <style>{GLOBAL_STYLES}</style>
-      {step === "info" && (
-        <UserInfoStep onNext={data => { setSubmitter(data); setStep("select"); }} />
-      )}
-      {step === "select" && (
-        <ApproverSelectStep
-          submitter={submitter}
-          onSubmitted={id => { setDocId(id); setStep("chain"); }}
-        />
-      )}
-      {step === "chain" && (
-        <LiveChainView
-          docId={docId}
-          submitter={submitter}
-          onDone={() => setStep("done")}
-        />
-      )}
-      {step === "done" && (
-        <SuccessScreen
-          submitter={submitter}
-          onClose={() => { setStep("info"); setSubmitter(null); setDocId(null); }}
-        />
-      )}
+      {step === "info" && <UserInfoStep onNext={data => { setSubmitter(data); setStep("select"); }} />}
+      {step === "select" && <ApproverSelectStep submitter={submitter} onSubmitted={id => { setDocId(id); setStep("chain"); }} />}
+      {step === "chain" && <LiveChainView docId={docId} submitter={submitter} onDone={() => setStep("done")} />}
+      {step === "done" && <SuccessScreen submitter={submitter} onClose={() => { setStep("info"); setSubmitter(null); setDocId(null); }} />}
     </>
   );
 }
