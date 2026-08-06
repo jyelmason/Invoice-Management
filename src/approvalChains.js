@@ -23,12 +23,12 @@ export const APPROVAL_CHAINS = {
   "DLB Associates": {
     proposal: [
       "lmdc@nls.solutions",
-      "jmason@DLBASSOCIATES.com",
-      "CTilghman@DLBASSOCIATES.com",
-    ],
-    invoice: [
       "CTilghman@DLBASSOCIATES.com",
       "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "jmason@DLBASSOCIATES.com",
+      "CTilghman@DLBASSOCIATES.com",
     ],
   },
 
