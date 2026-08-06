@@ -8,99 +8,75 @@ import { APPROVERS } from "./approvers";
 // below is used as a fallback so every combination still resolves to something.
 
 export const APPROVAL_CHAINS = {
-  FluidStack: {
+  MLP: {
     proposal: [
-      "marcus.chen@yourcompany.com",   // Head of Procurement
-      "sarah.mitchell@yourcompany.com", // VP of Operations
-      "derek.lau@yourcompany.com",      // CFO
+      "lmdc@nls.solutions",   // Head of Procurement
+      "WBuckley@DLBASSOCIATES.com", // VP of Operations
+      "mrann@beowulfed.com",      // CFO
     ],
     invoice: [
-      "amanda.torres@yourcompany.com",  // Director of Finance
-      "derek.lau@yourcompany.com",      // CFO
-    ],
-  },
-
-  Terawulf: {
-    proposal: [
-      "sarah.mitchell@yourcompany.com",
-      "james.okafor@yourcompany.com",
-      "derek.lau@yourcompany.com",
-    ],
-    invoice: [
-      "amanda.torres@yourcompany.com",
-      "derek.lau@yourcompany.com",
+      "WBuckley@DLBASSOCIATES.com",  // Director of Finance
+      "mrann@beowulfed.com",      // CFO
     ],
   },
 
   "DLB Associates": {
     proposal: [
-      "marcus.chen@yourcompany.com",
-      "priya.sharma@yourcompany.com",
-      "derek.lau@yourcompany.com",
+      "lmdc@nls.solutions",
+      "CTilghman@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
     invoice: [
-      "amanda.torres@yourcompany.com",
-      "marcus.chen@yourcompany.com",
+      "CTilghman@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
   },
 
   Ramboll: {
     proposal: [
-      "james.okafor@yourcompany.com",
-      "sarah.mitchell@yourcompany.com",
-      "derek.lau@yourcompany.com",
+      "lmdc@nls.solutions",
+      "CTilghman@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
     invoice: [
-      "priya.sharma@yourcompany.com",
-      "derek.lau@yourcompany.com",
+      "CTilghman@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
   },
 
-  "Turner Construction": {
+  "O'Connell Electric": {
     proposal: [
-      "marcus.chen@yourcompany.com",
-      "sarah.mitchell@yourcompany.com",
-      "james.okafor@yourcompany.com",
+      "lmdc@nls.solutions",
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
     invoice: [
-      "amanda.torres@yourcompany.com",
-      "marcus.chen@yourcompany.com",
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
   },
 
-  Mortenson: {
+  Danforth: {
     proposal: [
-      "sarah.mitchell@yourcompany.com",
-      "priya.sharma@yourcompany.com",
-      "derek.lau@yourcompany.com",
+      "lmdc@nls.solutions",
+      "WBuckley@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
     invoice: [
       "amanda.torres@yourcompany.com",
-      "priya.sharma@yourcompany.com",
+      "mrann@beowulfed.com",
     ],
   },
 
-  Vertiv: {
+  "Mader Construction": {
     proposal: [
-      "marcus.chen@yourcompany.com",
-      "james.okafor@yourcompany.com",
-      "derek.lau@yourcompany.com",
+      "lmdc@nls.solutions",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
     invoice: [
-      "amanda.torres@yourcompany.com",
-      "derek.lau@yourcompany.com",
-    ],
-  },
-
-  "Schneider Electric": {
-    proposal: [
-      "james.okafor@yourcompany.com",
-      "marcus.chen@yourcompany.com",
-      "derek.lau@yourcompany.com",
-    ],
-    invoice: [
-      "priya.sharma@yourcompany.com",
-      "amanda.torres@yourcompany.com",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
   },
 };

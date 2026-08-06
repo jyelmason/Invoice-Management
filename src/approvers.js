@@ -2,29 +2,33 @@
 // email must exactly match what approvers will type on /approve
 export const APPROVERS = [
   {
-    name: 'Sarah Mitchell',
-    title: 'VP of Operations',
-    email: 'sarah.mitchell@yourcompany.com',
+    name: 'Wes Buckley',
+    title: 'MEP Construction Manager',
+    email: 'WBuckley@DLBASSOCIATES.com',
   },
   {
-    name: 'James Okafor',
-    title: 'Legal Counsel',
-    email: 'james.okafor@yourcompany.com',
+    name: 'LMDC NLS Solutions',
+    title: 'Group Email',
+    email: 'lmdc@nls.solutions',
   },
   {
-    name: 'Priya Sharma',
-    title: 'Compliance Officer',
-    email: 'priya.sharma@yourcompany.com',
-  },
-  { name: 'Derek Lau', title: 'CFO', email: 'derek.lau@yourcompany.com' },
-  {
-    name: 'Amanda Torres',
-    title: 'Director of Finance',
-    email: 'amanda.torres@yourcompany.com',
+    name: 'Chris McCormack',
+    title: 'Senior MEP Construction Manager',
+    email: 'CMcCormack@DLBASSOCIATES.com',
   },
   {
-    name: 'Marcus Chen',
-    title: 'Head of Procurement',
-    email: 'marcus.chen@yourcompany.com',
+    name: 'Shawn Doherty',
+    title: 'Senior MEP Construction Manager',
+    email: 'SDoherty@DLBASSOCIATES.com',
+  },
+  {
+    name: 'Michael Rann',
+    title: 'Something',
+    email: 'mrann@beowulfed.com',
+  },
+  {
+    name: 'Carl Tilghman',
+    title: 'Project Executive',
+    email: 'CTilghman@DLBASSOCIATES.com',
   },
 ];
