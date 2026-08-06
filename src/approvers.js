@@ -2,14 +2,14 @@
 // email must exactly match what approvers will type on /approve
 export const APPROVERS = [
   {
-    name: 'Jyel Mason',
+    name: 'Sarah Mitchell',
     title: 'VP of Operations',
-    email: 'jyel.mason@gmail.com',
+    email: 'sarah.mitchell@yourcompany.com',
   },
   {
-    name: 'Jyel Mason (Work)',
+    name: 'James Okafor',
     title: 'Legal Counsel',
-    email: 'jmason@dlbassociates.com',
+    email: 'james.okafor@yourcompany.com',
   },
   {
     name: 'Priya Sharma',
