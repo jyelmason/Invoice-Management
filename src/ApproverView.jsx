@@ -9,7 +9,6 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { APPROVERS } from './approvers';
 import { getDocTypeLabel } from './docTypes';
 import { GLOBAL_STYLES, Connector, ApproverCard } from './components';
 
