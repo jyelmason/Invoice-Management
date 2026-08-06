@@ -44,7 +44,7 @@ export const APPROVAL_CHAINS = {
     ],
   },
 
-  "O'Connell Electric": {
+  "O\'Connell Electric": {
     proposal: [
       "lmdc@nls.solutions",
       "CMcCormack@DLBASSOCIATES.com",

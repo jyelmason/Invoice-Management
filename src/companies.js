@@ -2,12 +2,12 @@
 // Edit this list to match your actual roster of submitting companies.
 
 export const COMPANIES = [
-  "FluidStack",
+  "MLP",
   "Terawulf",
   "DLB Associates",
   "Ramboll",
-  "Turner Construction",
+  "O\'Connell Electric",
   "Mortenson",
-  "Vertiv",
-  "Schneider Electric",
+  "Danforth",
+  "Mader Construction",
 ];
