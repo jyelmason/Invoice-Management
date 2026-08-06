@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { APPROVERS } from './approvers';
+import { getDocTypeLabel } from './docTypes';
 import { GLOBAL_STYLES, Connector, ApproverCard } from './components';
 
 // ─── Email login screen ──────────────────────────────────────────────────────
@@ -47,8 +48,9 @@ function EmailLoginScreen({ onFound }) {
       snap.forEach((d) => {
         const data = d.data();
         const idx = data.approvedCount ?? 0;
+        const total = data.approverCount ?? data.approvers?.length ?? 0;
         if (
-          idx < 3 &&
+          idx < total &&
           data.approvers?.[idx]?.email?.toLowerCase() === trimmed
         ) {
           pending.push({ id: d.id, ...data });
@@ -212,9 +214,11 @@ function ApprovalActionView({ approver, approval, onApproved, onBack }) {
   }, [approval.id]);
 
   const currentIdx = liveData.approvedCount ?? 0;
+  const totalApprovers =
+    liveData.approverCount ?? liveData.approvers?.length ?? 0;
   const isMyTurn =
     liveData.approvers?.[currentIdx]?.email?.toLowerCase() === approver.email;
-  const allDone = liveData.status === 'complete' || currentIdx >= 3;
+  const allDone = liveData.status === 'complete' || currentIdx >= totalApprovers;
 
   const handleApprove = async () => {
     if (!isMyTurn || approving) return;
@@ -225,7 +229,7 @@ function ApprovalActionView({ approver, approval, onApproved, onBack }) {
         approvedCount: newCount,
         // Cloud Function watches for approvedCount changes and sends next email / completion email
         [`approverTimestamps.${currentIdx}`]: new Date().toISOString(),
-        ...(newCount >= 3 ? { status: 'complete' } : {}),
+        ...(newCount >= totalApprovers ? { status: 'complete' } : {}),
       });
       setDone(true);
       setTimeout(() => onApproved(), 1800);
@@ -304,7 +308,7 @@ function ApprovalActionView({ approver, approval, onApproved, onBack }) {
                 margin: '0 0 2px',
               }}
             >
-              Approval chain
+              Approval chain{liveData.docType ? ` · ${getDocTypeLabel(liveData.docType)}` : ''}
             </p>
             <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>
               {liveData.submitter?.company}
@@ -502,7 +506,7 @@ function ApprovalActionView({ approver, approval, onApproved, onBack }) {
               : ''}
           </span>
           <div style={{ display: 'flex', gap: 4 }}>
-            {[0, 1, 2].map((i) => (
+            {Array.from({ length: totalApprovers }, (_, i) => i).map((i) => (
               <div
                 key={i}
                 style={{

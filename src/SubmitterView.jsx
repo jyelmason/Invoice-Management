@@ -3,18 +3,20 @@ import { collection, addDoc, onSnapshot, serverTimestamp, doc } from "firebase/f
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
 import { APPROVERS } from "./approvers";
+import { COMPANIES } from "./companies";
+import { DOC_TYPES, getApproverCount, getDocTypeLabel } from "./docTypes";
 import { GLOBAL_STYLES, Connector, ApproverCard } from "./components";
 
 // ─── Step 1: Submitter info + file upload form ───────────────────────────────
 function UserInfoStep({ onNext }) {
-  const [form, setForm]     = useState({ firstName: "", lastName: "", email: "", company: "" });
+  const [form, setForm]     = useState({ firstName: "", lastName: "", email: "", company: "", docType: "" });
   const [file, setFile]     = useState(null);
   const [dragOver, setDrag] = useState(false);
   const fileRef             = useRef();
 
   const valid =
     form.firstName.trim() && form.lastName.trim() &&
-    form.email.includes("@") && form.company.trim() && file;
+    form.email.includes("@") && form.company && form.docType && file;
 
   const handleFile = f => { if (f?.type === "application/pdf") setFile(f); };
 
@@ -39,9 +41,21 @@ function UserInfoStep({ onNext }) {
             <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>Email</label>
             <input type="email" placeholder="alex@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={{ width: "100%", boxSizing: "border-box" }} />
           </div>
-          <div>
-            <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>Company</label>
-            <input placeholder="Your company name" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} style={{ width: "100%", boxSizing: "border-box" }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>Company</label>
+              <select value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} style={{ width: "100%", boxSizing: "border-box" }}>
+                <option value="">Select company…</option>
+                {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>Document type</label>
+              <select value={form.docType} onChange={e => setForm(f => ({ ...f, docType: e.target.value }))} style={{ width: "100%", boxSizing: "border-box" }}>
+                <option value="">Select type…</option>
+                {DOC_TYPES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              </select>
+            </div>
           </div>
           <div>
             <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>PDF document</label>
@@ -79,7 +93,8 @@ function UserInfoStep({ onNext }) {
 
 // ─── Step 2: Pick approvers + submit ────────────────────────────────────────
 function ApproverSelectStep({ submitter, onSubmitted }) {
-  const [selections, setSelections] = useState(["", "", ""]);
+  const approverCount               = getApproverCount(submitter.docType);
+  const [selections, setSelections] = useState(Array(approverCount).fill(""));
   const [uploading, setUploading]   = useState(false);
   const [uploadPct, setUploadPct]   = useState(0);
   const [error, setError]           = useState("");
@@ -115,6 +130,8 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
           email:     submitter.email,
           company:   submitter.company,
         },
+        docType:       submitter.docType,
+        approverCount,
         approvers:     chosenApprovers,
         approvedCount: 0,
         pdfUrl,
@@ -138,7 +155,9 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
         <div style={{ marginBottom: "2rem" }}>
           <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.08em", color: "var(--color-text-secondary)", textTransform: "uppercase", margin: "0 0 8px" }}>Document Approval</p>
           <h1 style={{ fontSize: 26, fontWeight: 500, margin: "0 0 6px" }}>Choose approvers</h1>
-          <p style={{ fontSize: 14, color: "var(--color-text-secondary)", margin: 0 }}>Select three people to review this document. Each will be emailed in sequence.</p>
+          <p style={{ fontSize: 14, color: "var(--color-text-secondary)", margin: 0 }}>
+            {getDocTypeLabel(submitter.docType)}s require {approverCount} approver{approverCount === 1 ? "" : "s"}. Each will be emailed in sequence.
+          </p>
         </div>
 
         <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-lg)", padding: "1.5rem", display: "flex", flexDirection: "column", gap: 16 }}>
@@ -148,11 +167,13 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
             </div>
             <div>
               <p style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{submitter.firstName} {submitter.lastName}</p>
-              <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: 0 }}>{submitter.company} · {submitter.file.name}</p>
+              <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: 0 }}>
+                {submitter.company} · {getDocTypeLabel(submitter.docType)} · {submitter.file.name}
+              </p>
             </div>
           </div>
 
-          {[0, 1, 2].map(i => (
+          {Array.from({ length: approverCount }, (_, i) => i).map(i => (
             <div key={i}>
               <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>Approver {i + 1}</label>
               <div style={{ border: `1px solid ${selections[i] ? "#97C459" : "var(--color-border-secondary)"}`, borderRadius: "var(--border-radius-md)", overflow: "hidden" }}>
@@ -210,6 +231,7 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
 function LiveChainView({ docId, submitter, onDone }) {
   const [approvedCount, setApprovedCount] = useState(0);
   const [approvers, setApprovers]         = useState([]);
+  const [approverCount, setApproverCount] = useState(getApproverCount(submitter?.docType));
   const [docStatus, setDocStatus]         = useState("pending");
   const pdfUrl                            = useRef(null);
 
@@ -222,12 +244,13 @@ function LiveChainView({ docId, submitter, onDone }) {
       const data = snap.data();
       setApprovedCount(data.approvedCount ?? 0);
       setApprovers(data.approvers ?? []);
+      setApproverCount(data.approverCount ?? data.approvers?.length ?? approverCount);
       setDocStatus(data.status ?? "pending");
     });
     return () => unsub();
   }, [docId]);
 
-  const allDone = docStatus === "complete" || approvedCount >= 3;
+  const allDone = docStatus === "complete" || approvedCount >= approverCount;
 
   const getStatus = i => {
     if (i < approvedCount) return "approved";
@@ -239,7 +262,7 @@ function LiveChainView({ docId, submitter, onDone }) {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--color-background-tertiary)" }}>
       <div style={{ width: 340, minWidth: 300, flexShrink: 0, borderRight: "0.5px solid var(--color-border-tertiary)", display: "flex", flexDirection: "column", background: "var(--color-background-primary)", overflow: "hidden" }}>
         <div style={{ padding: "18px 18px 14px", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
-          <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", color: "var(--color-text-secondary)", textTransform: "uppercase", margin: "0 0 3px" }}>Approval chain</p>
+          <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", color: "var(--color-text-secondary)", textTransform: "uppercase", margin: "0 0 3px" }}>Approval chain · {getDocTypeLabel(submitter.docType)}</p>
           <h2 style={{ fontSize: 15, fontWeight: 500, margin: 0 }}>{submitter.company}</h2>
         </div>
 
@@ -277,7 +300,7 @@ function LiveChainView({ docId, submitter, onDone }) {
             <div style={{ padding: "9px", textAlign: "center" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 12, color: "var(--color-text-secondary)" }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#97C459", animation: "pulseDot 1s ease-in-out infinite" }} />
-                Approval {Math.min(approvedCount + 1, 3)} of 3 in progress…
+                Approval {Math.min(approvedCount + 1, approverCount)} of {approverCount} in progress…
               </div>
             </div>
           )}
@@ -290,7 +313,7 @@ function LiveChainView({ docId, submitter, onDone }) {
           <span style={{ fontSize: 13, fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{submitter.file?.name}</span>
           <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{submitter.file ? (submitter.file.size / 1024).toFixed(0) + " KB" : ""}</span>
           <div style={{ display: "flex", gap: 4 }}>
-            {[0,1,2].map(i => (
+            {Array.from({ length: approverCount }, (_, i) => i).map(i => (
               <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: i < approvedCount ? "#639922" : i === approvedCount && !allDone ? "#97C459" : "var(--color-border-secondary)", transition: "background 0.4s ease", animation: i === approvedCount && !allDone ? "pulseDot 1s ease-in-out infinite" : "none" }} />
             ))}
           </div>
@@ -320,7 +343,7 @@ function SuccessScreen({ submitter, onClose }) {
           <strong>{submitter.file?.name}</strong> has been fully approved on behalf of {name} at {submitter.company}. A confirmation has been sent to {submitter.email}.
         </p>
         <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-lg)", padding: "1rem 1.25rem", marginBottom: 24, textAlign: "left" }}>
-          {[["Submitted by", name], ["Company", submitter.company], ["Email", submitter.email], ["File", submitter.file?.name]].map(([k, v]) => (
+          {[["Submitted by", name], ["Company", submitter.company], ["Document type", getDocTypeLabel(submitter.docType)], ["Email", submitter.email], ["File", submitter.file?.name]].map(([k, v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "0.5px solid var(--color-border-tertiary)", fontSize: 13 }}>
               <span style={{ color: "var(--color-text-secondary)" }}>{k}</span>
               <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{v}</span>
