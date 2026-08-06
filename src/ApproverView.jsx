@@ -11,6 +11,7 @@ import {
 import { db } from './firebase';
 import { getDocTypeLabel } from './docTypes';
 import { GLOBAL_STYLES, Connector, ApproverCard } from './components';
+import { APPROVERS } from './approvers';
 
 // ─── Email login screen ──────────────────────────────────────────────────────
 function EmailLoginScreen({ onFound }) {
