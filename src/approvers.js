@@ -31,4 +31,9 @@ export const APPROVERS = [
     title: 'Project Executive',
     email: 'CTilghman@DLBASSOCIATES.com',
   },
+  {
+    name: 'Jyel Mason',
+    title: 'Site Coordinator',
+    email: 'jmason@DLBASSOCIATES.com',
+  },
 ];
