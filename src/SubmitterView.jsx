@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { collection, addDoc, onSnapshot, serverTimestamp, doc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
-import { APPROVERS } from "./approvers";
 import { COMPANIES } from "./companies";
 import { DOC_TYPES, getApproverCount, getDocTypeLabel } from "./docTypes";
+import { getPresetChain } from "./approvalChains";
 import { GLOBAL_STYLES, Connector, ApproverCard } from "./components";
 
 // ─── Step 1: Submitter info + file upload form ───────────────────────────────
@@ -91,17 +91,18 @@ function UserInfoStep({ onNext }) {
   );
 }
 
-// ─── Step 2: Pick approvers + submit ────────────────────────────────────────
+// ─── Step 2: Review preset chain + submit ───────────────────────────────────
 function ApproverSelectStep({ submitter, onSubmitted }) {
-  const approverCount               = getApproverCount(submitter.docType);
-  const [selections, setSelections] = useState(Array(approverCount).fill(""));
-  const [uploading, setUploading]   = useState(false);
-  const [uploadPct, setUploadPct]   = useState(0);
-  const [error, setError]           = useState("");
-  const allSelected                 = selections.every(Boolean);
+  const approverCount = getApproverCount(submitter.docType);
+  const presetChain   = getPresetChain(submitter.company, submitter.docType);
+  const chainReady    = presetChain.length === approverCount;
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [error, setError]         = useState("");
 
   const handleSubmit = async () => {
-    if (!allSelected || uploading) return;
+    if (!chainReady || uploading) return;
     setUploading(true);
     setError("");
 
@@ -118,10 +119,9 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
         );
       });
 
-      const chosenApprovers = selections.map(sel => {
-        const found = APPROVERS.find(a => `${a.name} — ${a.title}` === sel);
-        return { name: found.name, title: found.title, email: found.email };
-      });
+      const chosenApprovers = presetChain.map(a => ({
+        name: a.name, title: a.title, email: a.email,
+      }));
 
       const docRef = await addDoc(collection(db, "approvals"), {
         submitter: {
@@ -154,9 +154,9 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
       <div style={{ width: "100%", maxWidth: 480 }}>
         <div style={{ marginBottom: "2rem" }}>
           <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.08em", color: "var(--color-text-secondary)", textTransform: "uppercase", margin: "0 0 8px" }}>Document Approval</p>
-          <h1 style={{ fontSize: 26, fontWeight: 500, margin: "0 0 6px" }}>Choose approvers</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 500, margin: "0 0 6px" }}>Approval chain</h1>
           <p style={{ fontSize: 14, color: "var(--color-text-secondary)", margin: 0 }}>
-            {getDocTypeLabel(submitter.docType)}s require {approverCount} approver{approverCount === 1 ? "" : "s"}. Each will be emailed in sequence.
+            {submitter.company}'s standard chain for {getDocTypeLabel(submitter.docType).toLowerCase()}s — {approverCount} approver{approverCount === 1 ? "" : "s"}, notified in order.
           </p>
         </div>
 
@@ -173,49 +173,28 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
             </div>
           </div>
 
-          {Array.from({ length: approverCount }, (_, i) => i).map(i => (
-            <div key={i}>
-              <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>Approver {i + 1}</label>
-              <div style={{ border: `1px solid ${selections[i] ? "#97C459" : "var(--color-border-secondary)"}`, borderRadius: "var(--border-radius-md)", overflow: "hidden" }}>
-                <select
-                  value={selections[i]}
-                  onChange={e => { const n = [...selections]; n[i] = e.target.value; setSelections(n); }}
-                  style={{ width: "100%", padding: "9px 12px", fontSize: 13, border: "none", background: "transparent", color: selections[i] ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", outline: "none" }}
-                >
-                  <option value="">Select approver…</option>
-                  {APPROVERS
-                    .filter(a => {
-                      const val = `${a.name} — ${a.title}`;
-                      return !selections.includes(val) || selections[i] === val;
-                    })
-                    .map(a => {
-                      const val = `${a.name} — ${a.title}`;
-                      return <option key={val} value={val}>{a.name} — {a.title}</option>;
-                    })}
-                </select>
-              </div>
-              {selections[i] && (
-                <div style={{ marginTop: 5, padding: "7px 12px", background: "#EAF3DE", borderRadius: "var(--border-radius-md)", display: "flex", alignItems: "center", gap: 8, animation: "fadeIn 0.2s ease" }}>
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#C0DD97", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#3B6D11", flexShrink: 0 }}>
-                    {selections[i].split(" ").map(w => w[0]).slice(0, 2).join("")}
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 12, fontWeight: 500, margin: 0, color: "#27500A" }}>{selections[i].split(" — ")[0]}</p>
-                    <p style={{ fontSize: 10, color: "#3B6D11", margin: 0 }}>
-                      {APPROVERS.find(a => `${a.name} — ${a.title}` === selections[i])?.email}
-                    </p>
-                  </div>
+          {chainReady ? (
+            <div>
+              {presetChain.map((a, i) => (
+                <div key={a.email}>
+                  {i > 0 && <Connector active={i === 0} approved={false} />}
+                  <ApproverCard name={a.name} role={a.title} status={i === 0 ? "active" : "pending"} />
                 </div>
-              )}
+              ))}
             </div>
-          ))}
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--color-text-danger)", margin: 0 }}>
+              No approval chain is configured for {submitter.company} — {getDocTypeLabel(submitter.docType)}s.
+              Please contact an administrator to set one up before submitting.
+            </p>
+          )}
 
           {error && <p style={{ fontSize: 12, color: "var(--color-text-danger)", margin: 0 }}>{error}</p>}
 
           <button
             onClick={handleSubmit}
-            disabled={!allSelected || uploading}
-            style={{ marginTop: 4, padding: "10px 0", fontWeight: 500, fontSize: 14, cursor: allSelected && !uploading ? "pointer" : "not-allowed", opacity: allSelected && !uploading ? 1 : 0.4 }}
+            disabled={!chainReady || uploading}
+            style={{ marginTop: 4, padding: "10px 0", fontWeight: 500, fontSize: 14, cursor: chainReady && !uploading ? "pointer" : "not-allowed", opacity: chainReady && !uploading ? 1 : 0.4 }}
           >
             {uploading
               ? uploadPct < 100 ? `Uploading… ${uploadPct}%` : "Saving…"
