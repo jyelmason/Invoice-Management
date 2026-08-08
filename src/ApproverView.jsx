@@ -13,6 +13,18 @@ import { getDocTypeLabel } from './docTypes';
 import { GLOBAL_STYLES, Connector, ApproverCard } from './components';
 import { APPROVERS } from './approvers';
 
+// Formats a stored requiredBy { date, time, datetime } for display, and flags overdue.
+function formatRequiredBy(requiredBy) {
+  if (!requiredBy?.date) return null;
+  const d = new Date(`${requiredBy.date}T${requiredBy.time || '00:00'}`);
+  const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const label = requiredBy.time
+    ? `${dateStr} at ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+    : dateStr;
+  const overdue = requiredBy.datetime ? new Date(requiredBy.datetime).getTime() < Date.now() : false;
+  return { label, overdue };
+}
+
 // ─── Email login screen ──────────────────────────────────────────────────────
 function EmailLoginScreen({ onFound }) {
   const [email, setEmail] = useState('');
@@ -313,6 +325,30 @@ function ApprovalActionView({ approver, approval, onApproved, onBack }) {
             <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>
               {liveData.submitter?.company}
             </h2>
+            {(() => {
+              const due = formatRequiredBy(liveData.requiredBy);
+              if (!due) return null;
+              return (
+                <p
+                  style={{
+                    fontSize: 11,
+                    margin: '6px 0 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    color: due.overdue ? '#B3261E' : '#185FA5',
+                    fontWeight: due.overdue ? 500 : 400,
+                  }}
+                >
+                  <i
+                    className={due.overdue ? 'ti ti-alert-triangle' : 'ti ti-clock'}
+                    style={{ fontSize: 12 }}
+                    aria-hidden="true"
+                  />
+                  {due.overdue ? 'Overdue since' : 'Due'} {due.label}
+                </p>
+              );
+            })()}
           </div>
         </div>
 
