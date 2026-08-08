@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   collection,
-  query,
-  where,
   getDocs,
   doc,
   updateDoc,
@@ -23,6 +21,26 @@ function formatRequiredBy(requiredBy) {
     : dateStr;
   const overdue = requiredBy.datetime ? new Date(requiredBy.datetime).getTime() < Date.now() : false;
   return { label, overdue };
+}
+
+// Classifies one approval doc relative to a given approver email.
+// Returns null if the email isn't actually part of this doc's chain.
+function classifyApproval(data, trimmedEmail) {
+  const approvers = data.approvers ?? [];
+  const myIdx = approvers.findIndex((a) => a.email?.toLowerCase() === trimmedEmail);
+  if (myIdx === -1) return null;
+
+  const currentIdx = data.approvedCount ?? 0;
+  const total = data.approverCount ?? approvers.length ?? 0;
+  const isComplete = data.status === 'complete' || currentIdx >= total;
+
+  let phase;
+  if (isComplete) phase = 'complete';
+  else if (myIdx < currentIdx) phase = 'approved_by_you'; // your step is done, waiting on others
+  else if (myIdx === currentIdx) phase = 'action_needed'; // it's your turn right now
+  else phase = 'waiting'; // hasn't reached you yet
+
+  return { phase, myIdx };
 }
 
 // ─── Email login screen ──────────────────────────────────────────────────────
@@ -49,37 +67,33 @@ function EmailLoginScreen({ onFound }) {
     setError('');
 
     try {
-      // Find all pending approvals where this person is the *current* approver
-      // Firestore rule: approvers[approvedCount].email === trimmed
-      // We query all pending docs and filter client-side (keeps Firestore rules simple)
-      const snap = await getDocs(
-        query(collection(db, 'approvals'), where('status', '==', 'pending'))
-      );
+      // Pull every approval this person is part of, past or present, and
+      // classify each relative to them. We fetch the whole collection and
+      // filter client-side rather than querying by email, because approvers
+      // live inside an array-of-maps field that Firestore can't query
+      // directly without a denormalized array-of-emails field + index.
+      const snap = await getDocs(collection(db, 'approvals'));
 
-      const pending = [];
+      const mine = [];
       snap.forEach((d) => {
         const data = d.data();
-        const idx = data.approvedCount ?? 0;
-        const total = data.approverCount ?? data.approvers?.length ?? 0;
-        if (
-          idx < total &&
-          data.approvers?.[idx]?.email?.toLowerCase() === trimmed
-        ) {
-          pending.push({ id: d.id, ...data });
-        }
+        const result = classifyApproval(data, trimmed);
+        if (result) mine.push({ id: d.id, ...data, ...result });
       });
 
-      if (pending.length === 0) {
-        setError('No pending approvals found for this email address.');
+      if (mine.length === 0) {
+        setError('No approvals found for this email address.');
         setLoading(false);
         return;
       }
+
+      mine.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
 
       onFound({
         email: trimmed,
         name: known.name,
         title: known.title,
-        pending,
+        approvals: mine,
       });
     } catch (err) {
       console.error(err);
@@ -206,6 +220,118 @@ function EmailLoginScreen({ onFound }) {
             {loading ? 'Looking up…' : 'Find my approvals →'}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Status badge helper ──────────────────────────────────────────────────────
+function phaseMeta(phase) {
+  switch (phase) {
+    case 'action_needed':
+      return { label: 'Needs your approval', bg: '#EAF3DE', color: '#27500A', border: '#97C459' };
+    case 'waiting':
+      return { label: 'Waiting on others', bg: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)', border: 'var(--color-border-secondary)' };
+    case 'approved_by_you':
+      return { label: 'You approved · pending others', bg: '#E6F1FB', color: '#185FA5', border: '#B7D8F2' };
+    case 'complete':
+    default:
+      return { label: 'Complete', bg: '#EAF3DE', color: '#27500A', border: '#97C459' };
+  }
+}
+
+// ─── Approvals dashboard — every doc tied to this approver, past + present ──
+function ApprovalsDashboard({ approver, approvals, onOpen, onSignOut }) {
+  const sections = [
+    { key: 'action_needed', title: 'Needs your approval', items: approvals.filter((a) => a.phase === 'action_needed') },
+    { key: 'waiting', title: 'Waiting on others', items: approvals.filter((a) => a.phase === 'waiting') },
+    { key: 'history', title: 'History', items: approvals.filter((a) => a.phase === 'approved_by_you' || a.phase === 'complete') },
+  ];
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--color-background-tertiary)', padding: '2rem' }}>
+      <div style={{ width: '100%', maxWidth: 720, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.08em', color: 'var(--color-text-secondary)', textTransform: 'uppercase', margin: '0 0 6px' }}>
+              Approver portal
+            </p>
+            <h1 style={{ fontSize: 24, fontWeight: 500, margin: 0 }}>Hi, {approver.name}</h1>
+          </div>
+          <button
+            onClick={onSignOut}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', fontSize: 13, padding: 0 }}
+          >
+            Sign out
+          </button>
+        </div>
+
+        {approvals.length === 0 && (
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>No approvals found for this email.</p>
+        )}
+
+        {sections.map((section) =>
+          section.items.length > 0 ? (
+            <div key={section.key} style={{ marginBottom: '1.75rem' }}>
+              <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', margin: '0 0 10px' }}>
+                {section.title} ({section.items.length})
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {section.items.map((a) => {
+                  const meta = phaseMeta(a.phase);
+                  const due = formatRequiredBy(a.requiredBy);
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => onOpen(a)}
+                      style={{
+                        background: 'var(--color-background-primary)',
+                        border: '0.5px solid var(--color-border-tertiary)',
+                        borderRadius: 'var(--border-radius-lg)',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <i className="ti ti-file-type-pdf" style={{ fontSize: 18, color: '#E24B4A', flexShrink: 0 }} aria-hidden="true" />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 500, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {a.fileName}
+                        </p>
+                        <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {a.submitter?.company} · {getDocTypeLabel(a.docType)} · from {a.submitter?.firstName} {a.submitter?.lastName}
+                        </p>
+                      </div>
+                      {due && (
+                        <span style={{ fontSize: 11, color: due.overdue ? '#B3261E' : 'var(--color-text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {due.overdue ? 'Overdue' : `Due ${due.label}`}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          padding: '4px 9px',
+                          borderRadius: 999,
+                          background: meta.bg,
+                          color: meta.color,
+                          border: `1px solid ${meta.border}`,
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {meta.label}
+                      </span>
+                      <i className="ti ti-chevron-right" style={{ fontSize: 14, color: 'var(--color-text-secondary)', flexShrink: 0 }} aria-hidden="true" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null
+        )}
       </div>
     </div>
   );
@@ -599,6 +725,137 @@ function ApprovalActionView({ approver, approval, onApproved, onBack }) {
   );
 }
 
+// ─── Read-only detail view — history & upcoming (not-yet-your-turn) items ──
+function ApprovalDetailView({ approver, approval, onBack }) {
+  const [liveData, setLiveData] = useState(approval);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'approvals', approval.id), (snap) => {
+      if (snap.exists()) setLiveData({ id: snap.id, ...snap.data() });
+    });
+    return () => unsub();
+  }, [approval.id]);
+
+  const currentIdx = liveData.approvedCount ?? 0;
+  const totalApprovers = liveData.approverCount ?? liveData.approvers?.length ?? 0;
+  const allDone = liveData.status === 'complete' || currentIdx >= totalApprovers;
+  const myIdx = (liveData.approvers ?? []).findIndex((a) => a.email?.toLowerCase() === approver.email);
+  const myTimestamp = myIdx > -1 ? liveData.approverTimestamps?.[myIdx] : null;
+
+  const getStatus = (i) => {
+    if (i < currentIdx) return 'approved';
+    if (i === currentIdx && !allDone) return 'active';
+    return 'pending';
+  };
+
+  let footerMessage;
+  if (allDone) {
+    footerMessage = 'This document is fully approved.';
+  } else if (myIdx > -1 && myIdx < currentIdx) {
+    footerMessage = myTimestamp
+      ? `You approved this on ${new Date(myTimestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}. Waiting on later approvers.`
+      : 'You approved this. Waiting on later approvers.';
+  } else {
+    footerMessage = "Waiting on earlier approvers — this hasn't reached you yet.";
+  }
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--color-background-tertiary)' }}>
+      {/* Left panel */}
+      <div
+        style={{
+          width: 340,
+          minWidth: 300,
+          flexShrink: 0,
+          borderRight: '0.5px solid var(--color-border-tertiary)',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--color-background-primary)',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ padding: '18px 18px 14px', borderBottom: '0.5px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={onBack}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px 2px 0', color: 'var(--color-text-secondary)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <i className="ti ti-arrow-left" style={{ fontSize: 14 }} aria-hidden="true" /> Back
+          </button>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', color: 'var(--color-text-secondary)', textTransform: 'uppercase', margin: '0 0 2px' }}>
+              Approval chain{liveData.docType ? ` · ${getDocTypeLabel(liveData.docType)}` : ''}
+            </p>
+            <h2 style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>{liveData.submitter?.company}</h2>
+            {(() => {
+              const due = formatRequiredBy(liveData.requiredBy);
+              if (!due) return null;
+              return (
+                <p
+                  style={{
+                    fontSize: 11,
+                    margin: '6px 0 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    color: due.overdue ? '#B3261E' : '#185FA5',
+                    fontWeight: due.overdue ? 500 : 400,
+                  }}
+                >
+                  <i className={due.overdue ? 'ti ti-alert-triangle' : 'ti ti-clock'} style={{ fontSize: 12 }} aria-hidden="true" />
+                  {due.overdue ? 'Overdue since' : 'Due'} {due.label}
+                </p>
+              );
+            })()}
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '18px 14px 8px' }}>
+          <ApproverCard
+            name={`${liveData.submitter?.firstName} ${liveData.submitter?.lastName}`}
+            role={liveData.submitter?.email}
+            status="approved"
+            isSubmitter
+          />
+          {(liveData.approvers ?? []).map((ap, i) => (
+            <div key={i}>
+              <Connector active={i <= currentIdx} approved={i < currentIdx} />
+              <ApproverCard name={ap.name} role={ap.title} status={getStatus(i)} />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ padding: '14px', borderTop: '0.5px solid var(--color-border-tertiary)' }}>
+          <div style={{ padding: '9px', textAlign: 'center', fontSize: 12, color: allDone ? '#27500A' : 'var(--color-text-secondary)' }}>
+            {footerMessage}
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel — document details + PDF, no approve action */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '0.5px solid var(--color-border-tertiary)', background: 'var(--color-background-primary)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <i className="ti ti-file-type-pdf" style={{ fontSize: 18, color: '#E24B4A' }} aria-hidden="true" />
+          <span style={{ fontSize: 13, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {liveData.fileName}
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            {liveData.fileSize ? (liveData.fileSize / 1024).toFixed(0) + ' KB' : ''}
+          </span>
+        </div>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {liveData.pdfUrl ? (
+            <iframe src={liveData.pdfUrl} title="Document" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--color-text-secondary)', fontSize: 13 }}>
+              Loading document…
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Approved confirmation screen ────────────────────────────────────────────
 function ApprovedConfirmation({ approver, onBack }) {
   return (
@@ -658,33 +915,54 @@ function ApprovedConfirmation({ approver, onBack }) {
 
 // ─── Exported root component ─────────────────────────────────────────────────
 export default function ApproverView() {
-  const [step, setStep] = useState('login'); // "login" | "action" | "confirmed"
+  const [step, setStep] = useState('login'); // "login" | "dashboard" | "action" | "detail" | "confirmed"
   const [approver, setApprover] = useState(null);
-  const [approval, setApproval] = useState(null); // first pending approval
+  const [approvals, setApprovals] = useState([]);
+  const [selected, setSelected] = useState(null);
 
-  const handleFound = ({ email, name, title, pending }) => {
+  const handleFound = ({ email, name, title, approvals }) => {
     setApprover({ email, name, title });
-    setApproval(pending[0]); // show first pending doc; extend to list for multi-doc support
-    setStep('action');
+    setApprovals(approvals);
+    setStep('dashboard');
+  };
+
+  const handleOpen = (item) => {
+    setSelected(item);
+    setStep(item.phase === 'action_needed' ? 'action' : 'detail');
   };
 
   return (
     <>
       <style>{GLOBAL_STYLES}</style>
       {step === 'login' && <EmailLoginScreen onFound={handleFound} />}
+      {step === 'dashboard' && (
+        <ApprovalsDashboard
+          approver={approver}
+          approvals={approvals}
+          onOpen={handleOpen}
+          onSignOut={() => {
+            setStep('login');
+            setApprover(null);
+            setApprovals([]);
+            setSelected(null);
+          }}
+        />
+      )}
       {step === 'action' && (
         <ApprovalActionView
           approver={approver}
-          approval={approval}
+          approval={selected}
           onApproved={() => setStep('confirmed')}
-          onBack={() => setStep('login')}
+          onBack={() => setStep('dashboard')}
         />
       )}
+      {step === 'detail' && (
+        <ApprovalDetailView approver={approver} approval={selected} onBack={() => setStep('dashboard')} />
+      )}
       {step === 'confirmed' && (
-        <ApprovedConfirmation
-          approver={approver}
-          onBack={() => setStep('login')}
-        />
+        // Route back to login rather than the (now stale) dashboard so the
+        // approvals list gets re-fetched with the fresh approvedCount/status.
+        <ApprovedConfirmation approver={approver} onBack={() => setStep('login')} />
       )}
     </>
   );

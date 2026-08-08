@@ -182,6 +182,7 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
         docType:       submitter.docType,
         approverCount,
         approvers:     chosenApprovers,
+        approverEmails: chosenApprovers.map(a => a.email.toLowerCase()),
         approvedCount: 0,
         requiredBy:    buildRequiredBy(submitter.dueDate, submitter.dueTime),
         pdfUrl,
