@@ -7,9 +7,32 @@ import { DOC_TYPES, getApproverCount, getDocTypeLabel } from "./docTypes";
 import { getPresetChain } from "./approvalChains";
 import { GLOBAL_STYLES, Connector, ApproverCard } from "./components";
 
+// ─── Required-by date helpers ────────────────────────────────────────────────
+// Builds the Firestore-friendly payload from the raw form fields.
+// `date`/`time` are kept as plain strings (easy to re-populate an <input>),
+// and `datetime` is an ISO string for sorting/queries (defaults to end-of-day
+// when only a date was given, since a deadline with no time means "by end of day").
+function buildRequiredBy(dueDate, dueTime) {
+  if (!dueDate) return null;
+  const datetime = dueTime
+    ? new Date(`${dueDate}T${dueTime}`).toISOString()
+    : new Date(`${dueDate}T23:59:59`).toISOString();
+  return { date: dueDate, time: dueTime || null, datetime };
+}
+
+// Formats a requiredBy object for display, e.g. "Fri, Aug 21" or "Fri, Aug 21 at 3:00 PM".
+function formatRequiredBy(requiredBy) {
+  if (!requiredBy?.date) return null;
+  const d = new Date(`${requiredBy.date}T${requiredBy.time || "00:00"}`);
+  const dateStr = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  if (!requiredBy.time) return dateStr;
+  const timeStr = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${dateStr} at ${timeStr}`;
+}
+
 // ─── Step 1: Submitter info + file upload form ───────────────────────────────
 function UserInfoStep({ onNext }) {
-  const [form, setForm]     = useState({ firstName: "", lastName: "", email: "", company: "", docType: "" });
+  const [form, setForm]     = useState({ firstName: "", lastName: "", email: "", company: "", docType: "", dueDate: "", dueTime: "" });
   const [file, setFile]     = useState(null);
   const [dragOver, setDrag] = useState(false);
   const fileRef             = useRef();
@@ -56,6 +79,32 @@ function UserInfoStep({ onNext }) {
                 {DOC_TYPES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
             </div>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>
+              Required approval by <span style={{ color: "var(--color-text-secondary)", fontWeight: 400 }}>(optional)</span>
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <input
+                type="date"
+                value={form.dueDate}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={e => setForm(f => ({ ...f, dueDate: e.target.value, dueTime: e.target.value ? f.dueTime : "" }))}
+                style={{ width: "100%", boxSizing: "border-box" }}
+              />
+              <input
+                type="time"
+                value={form.dueTime}
+                disabled={!form.dueDate}
+                onChange={e => setForm(f => ({ ...f, dueTime: e.target.value }))}
+                style={{ width: "100%", boxSizing: "border-box", opacity: form.dueDate ? 1 : 0.5, cursor: form.dueDate ? "text" : "not-allowed" }}
+              />
+            </div>
+            <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "6px 0 0" }}>
+              {form.dueDate
+                ? "Approvers will see this deadline on the document."
+                : "Set a date if this needs to be approved by a specific day. Time is optional."}
+            </p>
           </div>
           <div>
             <label style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "block", marginBottom: 6 }}>PDF document</label>
@@ -134,6 +183,7 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
         approverCount,
         approvers:     chosenApprovers,
         approvedCount: 0,
+        requiredBy:    buildRequiredBy(submitter.dueDate, submitter.dueTime),
         pdfUrl,
         fileName:      submitter.file.name,
         fileSize:      submitter.file.size,
@@ -172,6 +222,13 @@ function ApproverSelectStep({ submitter, onSubmitted }) {
               </p>
             </div>
           </div>
+
+          {submitter.dueDate && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#185FA5" }}>
+              <i className="ti ti-clock" style={{ fontSize: 14 }} aria-hidden="true" />
+              Required approval by {formatRequiredBy(buildRequiredBy(submitter.dueDate, submitter.dueTime))}
+            </div>
+          )}
 
           {chainReady ? (
             <div>
@@ -243,6 +300,12 @@ function LiveChainView({ docId, submitter, onDone }) {
         <div style={{ padding: "18px 18px 14px", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
           <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", color: "var(--color-text-secondary)", textTransform: "uppercase", margin: "0 0 3px" }}>Approval chain · {getDocTypeLabel(submitter.docType)}</p>
           <h2 style={{ fontSize: 15, fontWeight: 500, margin: 0 }}>{submitter.company}</h2>
+          {submitter.dueDate && (
+            <p style={{ fontSize: 11, color: "#185FA5", margin: "6px 0 0", display: "flex", alignItems: "center", gap: 5 }}>
+              <i className="ti ti-clock" style={{ fontSize: 12 }} aria-hidden="true" />
+              Due {formatRequiredBy(buildRequiredBy(submitter.dueDate, submitter.dueTime))}
+            </p>
+          )}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "18px 14px 8px" }}>
@@ -322,7 +385,7 @@ function SuccessScreen({ submitter, onClose }) {
           <strong>{submitter.file?.name}</strong> has been fully approved on behalf of {name} at {submitter.company}. A confirmation has been sent to {submitter.email}.
         </p>
         <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-lg)", padding: "1rem 1.25rem", marginBottom: 24, textAlign: "left" }}>
-          {[["Submitted by", name], ["Company", submitter.company], ["Document type", getDocTypeLabel(submitter.docType)], ["Email", submitter.email], ["File", submitter.file?.name]].map(([k, v]) => (
+          {[["Submitted by", name], ["Company", submitter.company], ["Document type", getDocTypeLabel(submitter.docType)], ["Email", submitter.email], ["File", submitter.file?.name], ...(submitter.dueDate ? [["Required by", formatRequiredBy(buildRequiredBy(submitter.dueDate, submitter.dueTime))]] : [])].map(([k, v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "0.5px solid var(--color-border-tertiary)", fontSize: 13 }}>
               <span style={{ color: "var(--color-text-secondary)" }}>{k}</span>
               <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{v}</span>
