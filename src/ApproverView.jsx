@@ -6,7 +6,7 @@ import {
   updateDoc,
   onSnapshot,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from './/firebase';
 import { getDocTypeLabel } from './docTypes';
 import { GLOBAL_STYLES, Connector, ApproverCard } from './components';
 import { APPROVERS } from './approvers';
