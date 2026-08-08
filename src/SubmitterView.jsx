@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { collection, addDoc, onSnapshot, serverTimestamp, doc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { db, storage } from ".//firebase";
+import { db, storage } from "./firebase";
 import { COMPANIES } from "./companies";
 import { DOC_TYPES, getApproverCount, getDocTypeLabel } from "./docTypes";
 import { getPresetChain } from "./approvalChains";
