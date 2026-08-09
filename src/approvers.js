@@ -34,7 +34,7 @@ export const APPROVERS = [
   {
     name: 'Jyel Mason',
     title: 'Site Coordinator',
-    email: 'jmason@DLBASSOCIATES.com',
+    email: 'jmason@dlbassociates.com',
   },
   {
     name: 'Jyel Mason',

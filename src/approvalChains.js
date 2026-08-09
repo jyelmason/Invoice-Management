@@ -28,7 +28,7 @@ export const APPROVAL_CHAINS = {
     ],
     invoice: [
       "jyel.mason@gmail.com",
-      "jmason@DLBASSOCIATES.com",
+      "jmason@dlbassociates.com",
     ],
   },
 
