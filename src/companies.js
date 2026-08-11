@@ -18,5 +18,6 @@ export const COMPANIES = [
   "Rickard Construction",
   "R-Options",
   "State Group",
-  "Sunbelt Controls"
+  "Sunbelt Controls",
+  "Test Company"
 ];

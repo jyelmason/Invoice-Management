@@ -199,6 +199,18 @@ export const APPROVAL_CHAINS = {
       "mrann@beowulfed.com",
     ],
   },
+
+  "Test Company": {
+    proposal: [
+      "jmason@dlbassociates.com",
+      "jyel.mason@gmail.com",
+      "jmason@dlbassociates.com",
+    ],
+    invoice: [
+      "jmason@dlbassociates.com",
+      "jyel.mason@gmail.com",
+    ],
+  },
 };
 
 // Fallback chain for any company/doc-type combo without a configured chain above.
