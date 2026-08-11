@@ -7,7 +7,16 @@ export const COMPANIES = [
   "DLB Associates",
   "Ramboll",
   "O\'Connell Electric",
-  "Mortenson",
   "Danforth",
   "Mader Construction",
+  "Ferguson Electric",
+  "MSH",
+  "Hohl Industries",
+  "Davis Ulmer",
+  "Grove Roofing",
+  "H-Miles",
+  "Rickard Construction",
+  "R-Options",
+  "State Group",
+  "Sunbelt Controls"
 ];

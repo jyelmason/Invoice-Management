@@ -10,13 +10,13 @@ import { APPROVERS } from "./approvers";
 export const APPROVAL_CHAINS = {
   MLP: {
     proposal: [
-      "lmdc@nls.solutions",   // Head of Procurement
-      "WBuckley@DLBASSOCIATES.com", // VP of Operations
-      "mrann@beowulfed.com",      // CFO
+      "lmdc@nls.solutions",   
+      "WBuckley@DLBASSOCIATES.com", 
+      "mrann@beowulfed.com",      
     ],
     invoice: [
-      "WBuckley@DLBASSOCIATES.com",  // Director of Finance
-      "mrann@beowulfed.com",      // CFO
+      "WBuckley@DLBASSOCIATES.com",  
+      "mrann@beowulfed.com",      
     ],
   },
 
@@ -27,8 +27,8 @@ export const APPROVAL_CHAINS = {
       "mrann@beowulfed.com",
     ],
     invoice: [
-      "jyel.mason@gmail.com",
-      "jmason@dlbassociates.com",
+      "CTilghman@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
     ],
   },
 
@@ -79,18 +79,138 @@ export const APPROVAL_CHAINS = {
       "mrann@beowulfed.com",
     ],
   },
+
+  "Ferguson Electric": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  MSH: {
+    proposal: [
+      "lmdc@nls.solutions",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "Hohl Industries": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "Davis Ulmer": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "Grove Roofing": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "H-Miles": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "Rickard Construction": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "R-Options": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "CMcCormack@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "State Group": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "SDoherty@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
+
+  "Sunbelt Controls": {
+    proposal: [
+      "lmdc@nls.solutions",
+      "WBuckley@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+    invoice: [
+      "WBuckley@DLBASSOCIATES.com",
+      "mrann@beowulfed.com",
+    ],
+  },
 };
 
 // Fallback chain for any company/doc-type combo without a configured chain above.
 export const DEFAULT_CHAINS = {
   proposal: [
-    "sarah.mitchell@yourcompany.com",
-    "james.okafor@yourcompany.com",
-    "derek.lau@yourcompany.com",
+    "lmdc@nls.solutions",
+    "CTilghman@DLBASSOCIATES.com",
+    "mrann@beowulfed.com",
   ],
   invoice: [
-    "amanda.torres@yourcompany.com",
-    "derek.lau@yourcompany.com",
+    "CTilghman@DLBASSOCIATES.com",
+    "mrann@beowulfed.com",
   ],
 };
 
