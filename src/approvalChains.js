@@ -10,8 +10,8 @@ import { APPROVERS } from "./approvers";
 export const APPROVAL_CHAINS = {
   MLP: {
     proposal: [
-      "lmdc@nls.solutions",   
-      "WBuckley@DLBASSOCIATES.com", 
+      "WBuckley@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",    
       "mrann@beowulfed.com",      
     ],
     invoice: [
@@ -22,8 +22,8 @@ export const APPROVAL_CHAINS = {
 
   "DLB Associates": {
     proposal: [
-      "lmdc@nls.solutions",
       "CTilghman@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -34,8 +34,8 @@ export const APPROVAL_CHAINS = {
 
   Ramboll: {
     proposal: [
-      "lmdc@nls.solutions",
       "CTilghman@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -46,8 +46,8 @@ export const APPROVAL_CHAINS = {
 
   "O\'Connell Electric": {
     proposal: [
-      "lmdc@nls.solutions",
       "CMcCormack@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -58,8 +58,8 @@ export const APPROVAL_CHAINS = {
 
   Danforth: {
     proposal: [
-      "lmdc@nls.solutions",
       "WBuckley@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -70,8 +70,8 @@ export const APPROVAL_CHAINS = {
 
   "Mader Construction": {
     proposal: [
-      "lmdc@nls.solutions",
       "SDoherty@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -82,8 +82,8 @@ export const APPROVAL_CHAINS = {
 
   "Ferguson Electric": {
     proposal: [
-      "lmdc@nls.solutions",
       "CMcCormack@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -94,8 +94,8 @@ export const APPROVAL_CHAINS = {
 
   MSH: {
     proposal: [
-      "lmdc@nls.solutions",
       "SDoherty@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -106,8 +106,8 @@ export const APPROVAL_CHAINS = {
 
   "Hohl Industries": {
     proposal: [
-      "lmdc@nls.solutions",
       "SDoherty@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -118,8 +118,8 @@ export const APPROVAL_CHAINS = {
 
   "Davis Ulmer": {
     proposal: [
-      "lmdc@nls.solutions",
       "CMcCormack@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -130,8 +130,8 @@ export const APPROVAL_CHAINS = {
 
   "Grove Roofing": {
     proposal: [
-      "lmdc@nls.solutions",
       "SDoherty@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -142,8 +142,8 @@ export const APPROVAL_CHAINS = {
 
   "H-Miles": {
     proposal: [
-      "lmdc@nls.solutions",
       "SDoherty@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -154,8 +154,8 @@ export const APPROVAL_CHAINS = {
 
   "Rickard Construction": {
     proposal: [
-      "lmdc@nls.solutions",
       "SDoherty@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -166,8 +166,8 @@ export const APPROVAL_CHAINS = {
 
   "R-Options": {
     proposal: [
-      "lmdc@nls.solutions",
       "CMcCormack@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -178,8 +178,8 @@ export const APPROVAL_CHAINS = {
 
   "State Group": {
     proposal: [
-      "lmdc@nls.solutions",
       "SDoherty@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
@@ -190,8 +190,8 @@ export const APPROVAL_CHAINS = {
 
   "Sunbelt Controls": {
     proposal: [
-      "lmdc@nls.solutions",
       "WBuckley@DLBASSOCIATES.com",
+      "lmdc@nls.solutions",
       "mrann@beowulfed.com",
     ],
     invoice: [
