@@ -3,7 +3,7 @@ import { signInWithCustomToken } from 'firebase/auth'
 import { auth } from './firebase'
 
 
-const LOGIN_URL = 'https://us-central1-<YOUR_PROJECT_ID>.cloudfunctions.net/companyLogin'
+//const LOGIN_URL = 'https://us-central1-<YOUR_PROJECT_ID>.cloudfunctions.net/companyLogin'
 
 export default function Login ({onSuccess}) {
     const [username, setUsername] = useState('');
