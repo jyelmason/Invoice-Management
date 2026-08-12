@@ -22,6 +22,20 @@ jobs:
         run: npm ci
         working-directory: functions
 
+      - name: Create .env file
+        run: |
+          echo "SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}" >> functions/.env.invoice-management-861d5
+          echo "SENDGRID_FROM_EMAIL=${{ secrets.SENDGRID_FROM_EMAIL }}" >> functions/.env.invoice-management-861d5
+          echo "MASTER_NOTIFY_EMAIL=${{ secrets.MASTER_NOTIFY_EMAIL }}" >> functions/.env.invoice-management-861d5
+
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: invoice-management-861d5
+
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:
