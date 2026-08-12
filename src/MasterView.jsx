@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from './firebase';
 import { GLOBAL_STYLES, Connector, ApproverCard } from './components';
 import { getDocTypeLabel } from './docTypes';
+import Login from './Login';
 
 // Formats a stored requiredBy { date, time, datetime } for display, flags overdue.
 function formatRequiredBy(requiredBy) {
@@ -169,6 +171,7 @@ export default function MasterView() {
   const [typeFilter, setTypeFilter] = useState('all'); // all | proposal | invoice
   const [statusFilter, setStatusFilter] = useState('all'); // all | pending | complete
   const [expandedId, setExpandedId] = useState(null);
+  const [user, setUser] = useState(undefined);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'approvals'), (snap) => {
@@ -180,6 +183,15 @@ export default function MasterView() {
     });
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, setUser);
+    return () => unsub();
+
+  },[]);
+
+  if (user === undefined) return null;
+  if (user === null) return <Login onSuccess={() => { }} />;
 
   const filtered = docs.filter((d) => {
     if (typeFilter !== 'all' && d.docType !== typeFilter) return false;
