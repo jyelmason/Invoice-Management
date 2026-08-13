@@ -209,6 +209,8 @@ exports.companyLogin = onRequest({ region: REGION, cors: true }, async (req, res
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { username, password } = req.body || {};
+  console.log("Login attempt - username:", JSON.stringify(username)); // TEMP DEBUG
+
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password required" });
   }
@@ -219,14 +221,19 @@ exports.companyLogin = onRequest({ region: REGION, cors: true }, async (req, res
       .limit(1)
       .get();
 
+    console.log("Query result empty?", snapshot.empty); // TEMP DEBUG
+
     if (snapshot.empty) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     const accountDoc = snapshot.docs[0];
     const account = accountDoc.data();
+    console.log("Found account, hash starts with:", account.passwordHash?.slice(0, 10)); // TEMP DEBUG
 
     const valid = await bcrypt.compare(password, account.passwordHash);
+    console.log("Password valid?", valid); // TEMP DEBUG
+
     if (!valid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
