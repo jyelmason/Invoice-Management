@@ -203,3 +203,42 @@ exports.onApprovalUpdated = onDocumentUpdated({document: "approvals/{docId}", re
     console.error("Failed to send email:", err);
   }
 });
+
+// ─── Company login (custom auth, no Firebase email/password) ────────────────
+exports.companyLogin = onRequest({ region: REGION, cors: true }, async (req, res) => {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password required" });
+  }
+
+  try {
+    const snapshot = await db.collection("companyAccounts")
+      .where("username", "==", username.toLowerCase().trim())
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const accountDoc = snapshot.docs[0];
+    const account = accountDoc.data();
+
+    const valid = await bcrypt.compare(password, account.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const customToken = await admin.auth().createCustomToken(accountDoc.id, {
+      company: account.company,
+      role: account.role || "viewer",
+    });
+
+    return res.json({ token: customToken });
+  } catch (err) {
+    console.error("companyLogin error:", err);
+    return res.status(500).json({ error: "Internal error" });
+  }
+});

@@ -1,3 +1,7 @@
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
+import Login from './Login';
+
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
@@ -180,6 +184,16 @@ export default function MasterView() {
     });
     return () => unsub();
   }, []);
+
+  const [user, setUser] = useState(undefined); // undefined = checking, null = logged out
+
+useEffect(() => {
+  const unsub = onAuthStateChanged(auth, setUser);
+  return () => unsub();
+}, []);
+
+if (user === undefined) return null; // or a loading spinner
+if (user === null) return <Login onSuccess={() => {}} />; // onAuthStateChanged will re-fire automatically
 
   const filtered = docs.filter((d) => {
     if (typeFilter !== 'all' && d.docType !== typeFilter) return false;
