@@ -1,7 +1,7 @@
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import Login from './Login';
-
+import { signOut } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
@@ -230,6 +230,7 @@ if (user === null) return <Login onSuccess={() => {}} />; // onAuthStateChanged 
     <div style={{ minHeight: '100vh', background: 'var(--color-background-tertiary)', padding: '2rem' }}>
       <style>{GLOBAL_STYLES}</style>
       <div style={{ width: '100%', maxWidth: 780, margin: '0 auto' }}>
+      <button onClick={() => signOut(auth)} style={{ fontSize: 12 }}>Sign out</button>
         <p style={{ fontSize: 12, fontWeight: 500, letterSpacing: '0.08em', color: 'var(--color-text-secondary)', textTransform: 'uppercase', margin: '0 0 6px' }}>
           Document approval
         </p>
